@@ -99,9 +99,12 @@ inter_mem_sets (mem_inf_sets_of_right (mem_principal_self s)) (mem_inf_sets_of_l
 theorem nhds_within_mono (a : α) {s t : set α} (h : s ⊆ t) : nhds_within a s ≤ nhds_within a t :=
 inf_le_inf_left _ (principal_mono.mpr h)
 
+lemma pure_le_nhds_within {a : α} {s : set α} (ha : a ∈ s) : pure a ≤ nhds_within a s :=
+le_inf (pure_le_nhds a) (le_principal_iff.2 ha)
+
 lemma mem_of_mem_nhds_within {a : α} {s t : set α} (ha : a ∈ s) (ht : t ∈ nhds_within a s) :
   a ∈ t :=
-let ⟨u, hu, H⟩ := mem_nhds_within.1 ht in H.2 ⟨H.1, ha⟩
+pure_le_nhds_within ha ht
 
 lemma filter.eventually.self_of_nhds_within {p : α → Prop} {s : set α} {x : α}
   (h : ∀ᶠ y in nhds_within x s, p y) (hx : x ∈ s) : p x :=
