@@ -130,6 +130,8 @@ notation `∫` binders ` in ` a `..` b `, ` r:(scoped:60 f, interval_integral f 
 
 namespace interval_integral
 
+section
+
 variables {a b c : α} {f g : α → E} {μ : measure α}
 
 lemma integral_of_le (h : a ≤ b) : ∫ x in a..b, f x ∂μ = ∫ x in Ioc a b, f x ∂μ :=
@@ -226,13 +228,25 @@ by rw [← add_neg_eq_zero, ← integral_symm, integral_add_adjacent_intervals_c
 
 end order_closed_topology
 
-variables [order_topology α]
+end
+
+/-!
+### Fundamental theorem of calculus, part 1
+
+In this section we prove many versions of FTC-1.
+
+TODO: expand docs
+-/
 
 open asymptotics
 
-lemma integral_sub_linear_is_o_of_tendsto_ae' {f : α → E}
-  {c : E} {l : filter α} {lb : filter β} [is_measurably_generated l] [is_interval_generated l]
-  (hfm : measurable f) (hf : tendsto f (l ⊓ μ.ae) (𝓝 c)) (hl : μ.finite_at_filter l)
+section
+
+variables {f : α → E} {c : E} {l : filter α} {lb : filter β}
+  [is_measurably_generated l] [is_interval_generated l] {μ : measure α}
+
+lemma integral_sub_linear_is_o_of_tendsto_ae₂ (hfm : measurable f)
+  (hf : tendsto f (l ⊓ μ.ae) (𝓝 c)) (hl : μ.finite_at_filter l)
   {a b : β → α} (ha : tendsto a lb l) (hb : tendsto b lb l) :
   is_o (λ t, ∫ x in a t..b t, f x ∂μ -
       ((μ (Ioc (a t) (b t))).to_real - (μ (Ioc (b t) (a t))).to_real) • c)
@@ -247,34 +261,57 @@ begin
   all_goals { intro t, cases le_total (a t) (b t) with hab hab; simp [hab] }
 end
 
+lemma integral_sub_linear_is_o_of_tendsto_ae_of_le (hfm : measurable f)
+  (hf : tendsto f (l ⊓ μ.ae) (𝓝 c)) (hl : μ.finite_at_filter l)
+  {a b : β → α} (ha : tendsto a lb l) (hb : tendsto b lb l) (hab : a ≤ᶠ[lb] b) :
+  is_o (λ t, ∫ x in a t..b t, f x ∂μ - (μ (Ioc (a t) (b t))).to_real • c)
+    (λ t, (μ $ Ioc (a t) (b t)).to_real) lb :=
+(integral_sub_linear_is_o_of_tendsto_ae₂ hfm hf hl ha hb).congr'
+  (hab.mono $ λ x hx, by simp [hx]) (hab.mono $ λ x hx, by simp [hx])
+
+lemma integral_sub_linear_is_o_of_tendsto_ae_of_ge (hfm : measurable f)
+  (hf : tendsto f (l ⊓ μ.ae) (𝓝 c)) (hl : μ.finite_at_filter l)
+  {a b : β → α} (ha : tendsto a lb l) (hb : tendsto b lb l) (hab : b ≤ᶠ[lb] a) :
+  is_o (λ t, ∫ x in a t..b t, f x ∂μ + (μ (Ioc (b t) (a t))).to_real • c)
+    (λ t, (μ $ Ioc (b t) (a t)).to_real) lb :=
+(integral_sub_linear_is_o_of_tendsto_ae_of_le hfm hf hl hb ha hab).neg_left.congr_left $ λ t,
+  by simp [integral_symm (a t), add_comm]
+
+variables [topological_space α] [order_topology α] [borel_space α]
+
 lemma integral_sub_linear_is_o_of_tendsto_ae [locally_finite_measure μ] {f : α → E} {a : α}
   {c : E} (hfm : measurable f) (hf : tendsto f ((𝓝 a) ⊓ μ.ae) (𝓝 c)) :
   is_o (λ b, ∫ x in a..b, f x ∂μ - ((μ (Ioc a b)).to_real - (μ (Ioc b a)).to_real) • c)
     (λ b, (μ (Ioc (min a b) (max a b))).to_real) (𝓝 a) :=
-integral_sub_linear_is_o_of_tendsto_ae' hfm hf (μ.finite_at_nhds a) tendsto_const_nhds tendsto_id
+integral_sub_linear_is_o_of_tendsto_ae₂ hfm hf (μ.finite_at_nhds a) tendsto_const_nhds tendsto_id
 
 lemma integral_sub_linear_is_o_of_tendsto_ae_left [locally_finite_measure μ] {f : α → E} {a : α}
   {c : E} (hfm : measurable f) (hf : tendsto f ((nhds_within a (Iic a)) ⊓ μ.ae) (𝓝 c)) :
-  is_o (λ b, ∫ x in a..b, f x ∂μ - ((μ (Ioc a b)).to_real - (μ (Ioc b a)).to_real) • c)
-    (λ b, (μ (Ioc (min a b) (max a b))).to_real) (nhds_within a $ Iic a) :=
-integral_sub_linear_is_o_of_tendsto_ae' hfm hf (μ.finite_at_nhds_within _ _)
-  (tendsto_le_right (pure_le_nhds_within right_mem_Iic) tendsto_const_pure) tendsto_id
+  is_o (λ b, ∫ x in a..b, f x ∂μ + (μ $ Ioc b a).to_real • c)
+    (λ b, (μ $ Ioc b a).to_real) (nhds_within a $ Iic a) :=
+integral_sub_linear_is_o_of_tendsto_ae_of_ge hfm hf (μ.finite_at_nhds_within _ _)
+  (tendsto_le_right (pure_le_nhds_within right_mem_Iic) tendsto_const_pure) tendsto_id $
+  eventually_nhds_within_iff.2 $ eventually_of_forall $ λ _, id
 
 lemma integral_sub_linear_is_o_of_tendsto_ae_right [locally_finite_measure μ] {f : α → E} {a : α}
   {c : E} (hfm : measurable f) (hf : tendsto f ((nhds_within a (Ici a)) ⊓ μ.ae) (𝓝 c)) :
-  is_o (λ b, ∫ x in a..b, f x ∂μ - ((μ (Ioc a b)).to_real - (μ (Ioc b a)).to_real) • c)
-    (λ b, (μ (Ioc (min a b) (max a b))).to_real) (nhds_within a $ Ici a) :=
-integral_sub_linear_is_o_of_tendsto_ae' hfm hf (μ.finite_at_nhds_within _ _)
-  (tendsto_le_right (pure_le_nhds_within left_mem_Ici) tendsto_const_pure) tendsto_id
+  is_o (λ b, ∫ x in a..b, f x ∂μ - (μ $ Ioc a b).to_real • c)
+    (λ b, (μ $ Ioc a b).to_real) (nhds_within a $ Ici a) :=
+integral_sub_linear_is_o_of_tendsto_ae_of_le hfm hf (μ.finite_at_nhds_within _ _)
+  (tendsto_le_right (pure_le_nhds_within left_mem_Ici) tendsto_const_pure) tendsto_id $
+  eventually_nhds_within_iff.2 $ eventually_of_forall $ λ _, id
 
-lemma integral_volume_sub_linear_is_o_of_tendsto_ae {f : ℝ → E} {c : E} {l : filter ℝ}
-  {lb : filter β} [is_measurably_generated l] [is_interval_generated l]
-  (hfm : measurable f) (hf : tendsto f (l ⊓ volume.ae) (𝓝 c))
-  {z : ℝ} (hz : l ≤ 𝓝 z) (hz' : pure z ≤ l)
+end
+
+variables {f : ℝ → E} {c : E} {l : filter ℝ} {lb : filter β} [is_measurably_generated l]
+  [is_interval_generated l] {a b z : ℝ}
+
+lemma integral_volume_sub_linear_is_o_of_tendsto_ae (hfm : measurable f)
+  (hf : tendsto f (l ⊓ volume.ae) (𝓝 c)) (hz : l ≤ 𝓝 z) (hz' : pure z ≤ l)
   {a b : β → ℝ} (ha : tendsto a lb l) (hb : tendsto b lb l) :
   is_o (λ t, (∫ x in a t..b t, f x) - (b t - a t) • c) (b - a) lb :=
 begin
-  refine ((integral_sub_linear_is_o_of_tendsto_ae' hfm hf
+  refine ((integral_sub_linear_is_o_of_tendsto_ae₂ hfm hf
     ((volume.finite_at_nhds _).filter_mono hz) ha hb).congr _ _).of_norm_right,
   { intro t,
     simp only [real.volume_Ioc, ennreal.to_real_of_real', ← neg_sub (b _), max_zero_sub_eq_self] },
@@ -282,10 +319,9 @@ begin
     simp [max_sub_min_eq_abs, abs_nonneg, real.norm_eq_abs] }
 end
 
-lemma integral_volume_sub_integral_sub_linear_is_o_of_tendsto_ae {f : ℝ → E} {c : E}
-  {l : filter ℝ} {lb : filter β} [is_measurably_generated l] [is_interval_generated l]
+lemma integral_volume_sub_integral_sub_linear_is_o_of_tendsto_ae
   (hfm : measurable f) (hf : tendsto f (l ⊓ volume.ae) (𝓝 c))
-  {a b : ℝ} (hb : l ≤ 𝓝 b) (hb' : pure b ≤ l) (hab : interval_integrable f volume a b)
+  (hb : l ≤ 𝓝 b) (hb' : pure b ≤ l) (hab : interval_integrable f volume a b)
   {u₁ u₂ : β → ℝ} (h₁ : tendsto u₁ lb l) (h₂ : tendsto u₂ lb l) :
   is_o (λ t, (∫ x in a..u₁ t, f x) - (∫ x in a..u₂ t, f x) - (u₁ t - u₂ t) • c) (u₁ - u₂) lb :=
 begin
@@ -301,83 +337,79 @@ begin
   simp [← integral_add_adjacent_intervals hfm h₂ h₂₁]
 end
 
-lemma integral_has_strict_deriv_at_of_tendsto_ae {f : ℝ → E} {a b : ℝ} {c : E} (hfm : measurable f)
+lemma integral_has_strict_deriv_at_of_tendsto_ae (hfm : measurable f)
   (hfi : interval_integrable f volume a b) (hb : tendsto f (𝓝 b ⊓ volume.ae) (𝓝 c)) :
   has_strict_deriv_at (λ u, ∫ x in a..u, f x) c b :=
 integral_volume_sub_integral_sub_linear_is_o_of_tendsto_ae hfm hb (le_refl _) (pure_le_nhds _)
   hfi continuous_at_fst continuous_at_snd
 
-lemma integral_has_deriv_at_of_tendsto_ae {f : ℝ → E} {a b : ℝ} {c : E} (hfm : measurable f)
+lemma integral_has_deriv_at_of_tendsto_ae (hfm : measurable f)
   (hfi : interval_integrable f volume a b) (hb : tendsto f (𝓝 b ⊓ volume.ae) (𝓝 c)) :
   has_deriv_at (λ u, ∫ x in a..u, f x) c b :=
 (integral_has_strict_deriv_at_of_tendsto_ae hfm hfi hb).has_deriv_at
 
-lemma integral_has_deriv_at {f : ℝ → E} {a b : ℝ} (hfm : measurable f)
-  (hfi : interval_integrable f volume a b) (hb : continuous_at f b) :
+lemma integral_has_deriv_at (hfm : measurable f) (hfi : interval_integrable f volume a b)
+  (hb : continuous_at f b) :
   has_deriv_at (λ u, ∫ x in a..u, f x) (f b) b :=
 integral_has_deriv_at_of_tendsto_ae hfm hfi (flip tendsto_le_left hb inf_le_left)
 
-lemma deriv_integral_eq_of_tendsto_ae {f : ℝ → E} {a b : ℝ} {c : E} (hfm : measurable f)
-  (hfi : interval_integrable f volume a b) (hb : tendsto f (𝓝 b ⊓ volume.ae) (𝓝 c)) :
+lemma deriv_integral_eq_of_tendsto_ae (hfm : measurable f) (hfi : interval_integrable f volume a b)
+  (hb : tendsto f (𝓝 b ⊓ volume.ae) (𝓝 c)) :
   deriv (λ u, ∫ x in a..u, f x) b = c :=
 (integral_has_deriv_at_of_tendsto_ae hfm hfi hb).deriv
 
-lemma deriv_integral_eq {f : ℝ → E} {a b : ℝ} (hfm : measurable f)
-  (hfi : interval_integrable f volume a b) (hb : continuous_at f b) :
+lemma deriv_integral_eq (hfm : measurable f) (hfi : interval_integrable f volume a b)
+  (hb : continuous_at f b) :
   deriv (λ u, ∫ x in a..u, f x) b = f b :=
 (integral_has_deriv_at hfm hfi hb).deriv
 
-lemma integral_has_deriv_within_at_Ici_of_tendsto_ae {f : ℝ → E} {a b : ℝ} {c : E}
-  (hfm : measurable f) (hfi : interval_integrable f volume a b)
+lemma integral_has_deriv_within_at_Ici_of_tendsto_ae (hfm : measurable f)
+  (hfi : interval_integrable f volume a b)
   (hb : tendsto f (nhds_within b (Ici b) ⊓ volume.ae) (𝓝 c)) :
   has_deriv_within_at (λ u, ∫ x in a..u, f x) c (Ici b) b :=
 have pure b ≤ nhds_within b (Ici b) := pure_le_nhds_within left_mem_Ici,
 integral_volume_sub_integral_sub_linear_is_o_of_tendsto_ae hfm hb inf_le_left this hfi
   tendsto_id (flip tendsto_le_right tendsto_const_pure this)
 
-lemma integral_has_deriv_within_at_Ici {f : ℝ → E} {a b : ℝ}
-  (hfm : measurable f) (hfi : interval_integrable f volume a b)
+lemma integral_has_deriv_within_at_Ici (hfm : measurable f) (hfi : interval_integrable f volume a b)
   (hb : continuous_within_at f (Ici b) b) :
   has_deriv_within_at (λ u, ∫ x in a..u, f x) (f b) (Ici b) b :=
 integral_has_deriv_within_at_Ici_of_tendsto_ae hfm hfi (flip tendsto_le_left hb inf_le_left)
 
-lemma deriv_within_Ici_integral_of_tendsto_ae {f : ℝ → E} {a b : ℝ} {c : E}
-  (hfm : measurable f) (hfi : interval_integrable f volume a b)
+lemma deriv_within_Ici_integral_of_tendsto_ae (hfm : measurable f)
+  (hfi : interval_integrable f volume a b)
   (hb : tendsto f (nhds_within b (Ici b) ⊓ volume.ae) (𝓝 c)) :
   deriv_within (λ u, ∫ x in a..u, f x) (Ici b) b = c :=
 (integral_has_deriv_within_at_Ici_of_tendsto_ae hfm hfi hb).deriv_within $
   unique_diff_on_Ici _ _ left_mem_Ici
 
-lemma deriv_within_Ici_integral {f : ℝ → E} {a b : ℝ}
-  (hfm : measurable f) (hfi : interval_integrable f volume a b)
+lemma deriv_within_Ici_integral (hfm : measurable f) (hfi : interval_integrable f volume a b)
   (hb : continuous_within_at f (Ici b) b) :
   deriv_within (λ u, ∫ x in a..u, f x) (Ici b) b = f b :=
 (integral_has_deriv_within_at_Ici hfm hfi hb).deriv_within $
   unique_diff_on_Ici _ _ left_mem_Ici
 
-lemma integral_has_deriv_within_at_Iic_of_tendsto_ae {f : ℝ → E} {a b : ℝ} {c : E}
-  (hfm : measurable f) (hfi : interval_integrable f volume a b)
+lemma integral_has_deriv_within_at_Iic_of_tendsto_ae (hfm : measurable f)
+  (hfi : interval_integrable f volume a b)
   (hb : tendsto f (nhds_within b (Iic b) ⊓ volume.ae) (𝓝 c)) :
   has_deriv_within_at (λ u, ∫ x in a..u, f x) c (Iic b) b :=
 have pure b ≤ nhds_within b (Iic b) := pure_le_nhds_within right_mem_Iic,
 integral_volume_sub_integral_sub_linear_is_o_of_tendsto_ae hfm hb inf_le_left this hfi
   tendsto_id (flip tendsto_le_right tendsto_const_pure this)
 
-lemma integral_has_deriv_within_at_Iic {f : ℝ → E} {a b : ℝ}
-  (hfm : measurable f) (hfi : interval_integrable f volume a b)
+lemma integral_has_deriv_within_at_Iic (hfm : measurable f) (hfi : interval_integrable f volume a b)
   (hb : continuous_within_at f (Iic b) b) :
   has_deriv_within_at (λ u, ∫ x in a..u, f x) (f b) (Iic b) b :=
 integral_has_deriv_within_at_Iic_of_tendsto_ae hfm hfi (flip tendsto_le_left hb inf_le_left)
 
-lemma deriv_within_Iic_integral_of_tendsto_ae {f : ℝ → E} {a b : ℝ} {c : E}
-  (hfm : measurable f) (hfi : interval_integrable f volume a b)
+lemma deriv_within_Iic_integral_of_tendsto_ae (hfm : measurable f)
+  (hfi : interval_integrable f volume a b)
   (hb : tendsto f (nhds_within b (Iic b) ⊓ volume.ae) (𝓝 c)) :
   deriv_within (λ u, ∫ x in a..u, f x) (Iic b) b = c :=
 (integral_has_deriv_within_at_Iic_of_tendsto_ae hfm hfi hb).deriv_within $
   unique_diff_on_Iic _ _ right_mem_Iic
 
-lemma deriv_within_Iic_integral {f : ℝ → E} {a b : ℝ}
-  (hfm : measurable f) (hfi : interval_integrable f volume a b)
+lemma deriv_within_Iic_integral (hfm : measurable f) (hfi : interval_integrable f volume a b)
   (hb : continuous_within_at f (Iic b) b) :
   deriv_within (λ u, ∫ x in a..u, f x) (Iic b) b = f b :=
 (integral_has_deriv_within_at_Iic hfm hfi hb).deriv_within $
