@@ -37,7 +37,7 @@ intervals with the same endpoints for two reasons:
 * this way `∫ x in a..b, f x ∂μ + ∫ x in b..c, f x ∂μ = ∫ x in a..c, f x ∂μ` holds whenever
   `f` is integrable on each interval; in particular, it works even if the measure `μ` has an atom
   at `b`; this rules out `Ioo` and `Icc` intervals;
-* with this definition for a probability measure `μ`, the integral `∫ x in a..b, f x ∂μ` equals
+* with this definition for a probability measure `μ`, the integral `∫ x in a..b, 1 ∂μ` equals
   the difference $F_μ(b)-F_μ(a)$, where $F_μ(a)=μ(-∞, a]$ is the
   [cumulative distribution function](https://en.wikipedia.org/wiki/Cumulative_distribution_function)
   of `μ`.
@@ -205,8 +205,8 @@ section order_closed_topology
 
 variables [order_closed_topology α]
 
-lemma integral_cocycle (hfm : measurable f) (hab : interval_integrable f μ a b)
-  (hbc : interval_integrable f μ b c) :
+lemma integral_add_adjacent_intervals_cancel (hfm : measurable f)
+  (hab : interval_integrable f μ a b) (hbc : interval_integrable f μ b c) :
   ∫ x in a..b, f x ∂μ + ∫ x in b..c, f x ∂μ + ∫ x in c..a, f x ∂μ = 0 :=
 begin
   have hac := hab.trans hbc,
@@ -222,7 +222,7 @@ end
 lemma integral_add_adjacent_intervals (hfm : measurable f) (hab : interval_integrable f μ a b)
   (hbc : interval_integrable f μ b c) :
   ∫ x in a..b, f x ∂μ + ∫ x in b..c, f x ∂μ = ∫ x in a..c, f x ∂μ :=
-by rw [← add_neg_eq_zero, ← integral_symm, integral_cocycle hfm hab hbc]
+by rw [← add_neg_eq_zero, ← integral_symm, integral_add_adjacent_intervals_cancel hfm hab hbc]
 
 end order_closed_topology
 
