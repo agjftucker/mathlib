@@ -307,7 +307,7 @@ variables {f : ℝ → E} {c : E} {l : filter ℝ} {lb : filter β} [is_measurab
   [is_interval_generated l] {a b z : ℝ}
 
 lemma integral_volume_sub_linear_is_o_of_tendsto_ae (hfm : measurable f)
-  (hf : tendsto f (l ⊓ volume.ae) (𝓝 c)) (hz : l ≤ 𝓝 z) (hz' : pure z ≤ l)
+  (hf : tendsto f (l ⊓ volume.ae) (𝓝 c)) (hz : l ≤ 𝓝 z)
   {a b : β → ℝ} (ha : tendsto a lb l) (hb : tendsto b lb l) :
   is_o (λ t, (∫ x in a t..b t, f x) - (b t - a t) • c) (b - a) lb :=
 begin
@@ -325,7 +325,7 @@ lemma integral_volume_sub_integral_sub_linear_is_o_of_tendsto_ae
   {u₁ u₂ : β → ℝ} (h₁ : tendsto u₁ lb l) (h₂ : tendsto u₂ lb l) :
   is_o (λ t, (∫ x in a..u₁ t, f x) - (∫ x in a..u₂ t, f x) - (u₁ t - u₂ t) • c) (u₁ - u₂) lb :=
 begin
-  refine (integral_volume_sub_linear_is_o_of_tendsto_ae hfm hf hb hb' h₂ h₁).congr' _
+  refine (integral_volume_sub_linear_is_o_of_tendsto_ae hfm hf hb h₂ h₁).congr' _
     (eventually_eq.refl _ _),
   have hl : volume.finite_at_filter l := (volume.finite_at_nhds _).filter_mono hb,
   have A : ∀ᶠ t in lb, interval_integrable f volume (u₂ t) (u₁ t) :=
