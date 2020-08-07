@@ -41,7 +41,6 @@ intervals with the same endpoints for two reasons:
   the difference $F_μ(b)-F_μ(a)$, where $F_μ(a)=μ(-∞, a]$ is the
   [cumulative distribution function](https://en.wikipedia.org/wiki/Cumulative_distribution_function)
   of `μ`.
-
 -/
 
 noncomputable theory
@@ -51,6 +50,10 @@ open measure_theory set classical filter
 open_locale classical topological_space filter
 
 variables {α β 𝕜 E F : Type*} [decidable_linear_order α] [measurable_space α] [normed_group E]
+
+/-!
+### Integrability at an interval
+-/
 
 /-- A function `f` is called *interval integrable* with respect to a measure `μ` on an unordered
 interval `a..b` if it is integrable on both intervals `(a, b]` and `(b, a]`. One of these
@@ -101,6 +104,9 @@ lemma sub (hfm : measurable f) (hfi : interval_integrable f μ a b)
 
 end interval_integrable
 
+/-- If `f : α → E` has a finite limit at `l ⊓ μ.ae`, where `l` is a measurably generated interval
+generated filter and `μ` is a measure finite at this filter, then `f` is interval integrable
+with respect to `μ` on `a..b` as both `a` and `b` tend to `l`. -/
 lemma filter.tendsto.eventually_interval_integrable_ae {f : α → E} {μ : measure α} {l : filter α}
   [is_interval_generated l] [is_measurably_generated l]
   (hμ : μ.finite_at_filter l) {c : E} (hf : tendsto f (l ⊓ μ.ae) (𝓝 c))
@@ -109,12 +115,19 @@ lemma filter.tendsto.eventually_interval_integrable_ae {f : α → E} {μ : meas
 have _ := (hf.integrable_at_filter_ae hμ).eventually,
 ((ha.Ioc hb).eventually this).and $ (hb.Ioc ha).eventually this
 
+/-- If `f : α → E` has a finite limit at a measurably generated interval generated filter `l`
+and `μ` is a measure finite at this filter, then `f` is interval integrable with respect
+to `μ` on `a..b` as both `a` and `b` tend to `l`. -/
 lemma filter.tendsto.eventually_interval_integrable {f : α → E} {μ : measure α} {l : filter α}
   [is_interval_generated l] [is_measurably_generated l]
   (hμ : μ.finite_at_filter l) {c : E} (hf : tendsto f l (𝓝 c))
   {a b : β → α} {lb : filter β} (ha : tendsto a lb l) (hb : tendsto b lb l) :
   ∀ᶠ t in lb, interval_integrable f μ (a t) (b t) :=
 (tendsto_le_left (inf_le_left : l ⊓ μ.ae ≤ l) hf).eventually_interval_integrable_ae hμ ha hb
+
+/-!
+### Interval integral: definition and basic properties
+-/
 
 variables [second_countable_topology E] [complete_space E] [normed_space ℝ E]
   [measurable_space E] [borel_space E]
@@ -201,6 +214,22 @@ begin
   abel
 end
 
+lemma integral_sub (hfm : measurable f) (hfi : interval_integrable f μ a b)
+  (hgm : measurable g) (hgi : interval_integrable g μ a b) :
+  ∫ x in a..b, f x - g x ∂μ = ∫ x in a..b, f x ∂μ - ∫ x in a..b, g x ∂μ :=
+(integral_add hfm hfi hgm.neg hgi.neg).trans $ congr_arg _ integral_neg
+
+lemma integral_smul (r : ℝ) : ∫ x in a..b, r • f x ∂μ = r • ∫ x in a..b, f x ∂μ :=
+by simp only [interval_integral, integral_smul, smul_sub]
+
+lemma integral_const' (c : E) :
+  ∫ x in a..b, c ∂μ = ((μ $ Ioc a b).to_real - (μ $ Ioc b a).to_real) • c :=
+by simp only [interval_integral, set_integral_const, sub_smul]
+
+lemma integral_const {a b : ℝ} (c : E) : (∫ (x : ℝ) in a..b, c) = (b - a) • c :=
+by simp only [integral_const', real.volume_Ioc, ennreal.to_real_of_real', ← neg_sub b,
+  max_zero_sub_eq_self]
+
 variables [topological_space α] [opens_measurable_space α]
 
 section order_closed_topology
@@ -226,6 +255,16 @@ lemma integral_add_adjacent_intervals (hfm : measurable f) (hab : interval_integ
   ∫ x in a..b, f x ∂μ + ∫ x in b..c, f x ∂μ = ∫ x in a..c, f x ∂μ :=
 by rw [← add_neg_eq_zero, ← integral_symm, integral_add_adjacent_intervals_cancel hfm hab hbc]
 
+lemma integral_interval_sub_left (hfm : measurable f) (hab : interval_integrable f μ a b)
+  (hac : interval_integrable f μ a c) :
+  ∫ x in a..b, f x ∂μ - ∫ x in a..c, f x ∂μ = ∫ x in c..b, f x ∂μ :=
+sub_eq_of_eq_add' $ eq.symm $ integral_add_adjacent_intervals hfm hac (hac.symm.trans hab)
+
+lemma integral_of_Iic' (hfm : measurable f) (ha : integrable_on f (Iic a) μ)
+  (hb : integrable_on f (Iic b) μ) :
+  ∫ x in a..b, f x ∂μ = ∫ x in Iic b, f x ∂μ - ∫ x in Iic a, f x ∂μ :=
+_
+
 end order_closed_topology
 
 end
@@ -233,9 +272,8 @@ end
 /-!
 ### Fundamental theorem of calculus, part 1
 
-In this section we prove many versions of FTC-1.
-
-TODO: expand docs
+In this section we prove many versions of FTC-1. First we prove supporting lemmas that work for any
+measure on an ordered type, then specialize them for the Lebesgue measure on `ℝ`.
 -/
 
 open asymptotics
@@ -245,6 +283,9 @@ section
 variables {f : α → E} {c : E} {l : filter α} {lb : filter β}
   [is_measurably_generated l] [is_interval_generated l] {μ : measure α}
 
+/-- If `f` has a finite limit `c` at `l ⊓ μ.ae`, where `l` is a measurably generated interval
+generated filter (e.g., `𝓝 a`, `𝓝[Ici a] a`, `𝓝[Iic a] a`, or `at_top`) and `μ` is a measure
+finite at `l`, then `∫ x in a..b, f x ∂μ = ((μ (I-/
 lemma integral_sub_linear_is_o_of_tendsto_ae₂ (hfm : measurable f)
   (hf : tendsto f (l ⊓ μ.ae) (𝓝 c)) (hl : μ.finite_at_filter l)
   {a b : β → α} (ha : tendsto a lb l) (hb : tendsto b lb l) :
