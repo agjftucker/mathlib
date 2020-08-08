@@ -257,17 +257,25 @@ lemma integral_interval_sub_left (hfm : measurable f) (hab : interval_integrable
   ∫ x in a..b, f x ∂μ - ∫ x in a..c, f x ∂μ = ∫ x in c..b, f x ∂μ :=
 sub_eq_of_eq_add' $ eq.symm $ integral_add_adjacent_intervals hfm hac (hac.symm.trans hab)
 
+lemma integral_Ici_sub_Ici (hfm : measurable f) (ha : integrable_on f (Iic a) μ)
+  (hb : integrable_on f (Iic b) μ) :
+  ∫ x in Iic b, f x ∂μ - ∫ x in Iic a, f x ∂μ = ∫ x in a..b, f x ∂μ :=
+begin
+  wlog hab : a ≤ b using [a b] tactic.skip,
+  { rw [sub_eq_iff_eq_add', integral_of_le hab, ← integral_union (Iic_disjoint_Ioc (le_refl _)),
+      Iic_union_Ioc_eq_Iic hab],
+    exacts [is_measurable_Iic, is_measurable_Ioc, hfm, ha, hb.mono_set (λ _, and.right)] },
+  { intros ha hb,
+    rw [integral_symm, ← this hb ha, neg_sub] }
+end
+
 /-- If `μ` is a finite measure then `∫ x in a..b, c ∂μ = (μ (Iic b) - μ (Iic a)) • c`. -/
 lemma integral_const_of_cdf [finite_measure μ] (c : E) :
   ∫ x in a..b, c ∂μ = ((μ (Iic b)).to_real - (μ (Iic a)).to_real) • c :=
 begin
-  wlog hab : a ≤ b using [a b] tactic.skip,
-  { rw [integral_of_le hab, set_integral_const], congr' 1,
-    apply eq_sub_of_add_eq',
-    rw [← ennreal.to_real_add, ← measure_union, Iic_union_Ioc_eq_Iic hab],
-    exacts [λ x ⟨h₁, h₂, h₃⟩, h₂.not_le h₁, is_measurable_Iic, is_measurable_Ioc,
-      measure_ne_top _ _, measure_ne_top _ _] },
-  { rw [integral_symm, this, sub_smul, sub_smul, neg_sub] }
+  simp only [sub_smul, ← set_integral_const],
+  refine (integral_Ici_sub_Ici measurable_const _ _).symm;
+    simp only [integrable_on_const, measure_lt_top, or_true]
 end
 
 end order_closed_topology
