@@ -390,32 +390,48 @@ begin
   simp [← integral_add_adjacent_intervals hfm h₂ h₂₁]
 end
 
+/-- Fundamental theorem of calculus: if `f : ℝ → E` is integrable on `a..b` and `f x` has a finite
+limit `c` almost surely as `x` tends to `b`, then `u ↦ ∫ x in a..u, f x` has derivative `c` at `b`
+in the sense of strict differentiability. -/
 lemma integral_has_strict_deriv_at_of_tendsto_ae (hfm : measurable f)
   (hfi : interval_integrable f volume a b) (hb : tendsto f (𝓝 b ⊓ volume.ae) (𝓝 c)) :
   has_strict_deriv_at (λ u, ∫ x in a..u, f x) c b :=
 integral_volume_sub_integral_sub_linear_is_o_of_tendsto_ae hfm hb (le_refl _) (pure_le_nhds _)
   hfi continuous_at_fst continuous_at_snd
 
+/-- Fundamental theorem of calculus: if `f : ℝ → E` is integrable on `a..b` and `f x` has a finite
+limit `c` almost surely as `x` tends to `b`, then `u ↦ ∫ x in a..u, f x` has derivative `c` at
+`b`. -/
 lemma integral_has_deriv_at_of_tendsto_ae (hfm : measurable f)
   (hfi : interval_integrable f volume a b) (hb : tendsto f (𝓝 b ⊓ volume.ae) (𝓝 c)) :
   has_deriv_at (λ u, ∫ x in a..u, f x) c b :=
 (integral_has_strict_deriv_at_of_tendsto_ae hfm hfi hb).has_deriv_at
 
+/-- Fundamental theorem of calculus: if `f : ℝ → E` is integrable on `a..b` and `f x` is continuous
+at `b`, then `u ↦ ∫ x in a..u, f x` has derivative `f b` at `b`. -/
 lemma integral_has_deriv_at (hfm : measurable f) (hfi : interval_integrable f volume a b)
   (hb : continuous_at f b) :
   has_deriv_at (λ u, ∫ x in a..u, f x) (f b) b :=
 integral_has_deriv_at_of_tendsto_ae hfm hfi (flip tendsto_le_left hb inf_le_left)
 
+/-- Fundamental theorem of calculus: if `f : ℝ → E` is integrable on `a..b` and `f x` has a finite
+limit `c` almost surely as `x` tends to `b`, then the derivative of `u ↦ ∫ x in a..u, f x` at `b`
+equals `c`. -/
 lemma deriv_integral_eq_of_tendsto_ae (hfm : measurable f) (hfi : interval_integrable f volume a b)
   (hb : tendsto f (𝓝 b ⊓ volume.ae) (𝓝 c)) :
   deriv (λ u, ∫ x in a..u, f x) b = c :=
 (integral_has_deriv_at_of_tendsto_ae hfm hfi hb).deriv
 
+/-- Fundamental theorem of calculus: if `f : ℝ → E` is integrable on `a..b` and `f x` is continuous
+at `b`, then the derivative of `u ↦ ∫ x in a..u, f x` at `b` equals `f b`. -/
 lemma deriv_integral_eq (hfm : measurable f) (hfi : interval_integrable f volume a b)
   (hb : continuous_at f b) :
   deriv (λ u, ∫ x in a..u, f x) b = f b :=
 (integral_has_deriv_at hfm hfi hb).deriv
 
+/-- Fundamental theorem of calculus: if `f : ℝ → E` is integrable on `a..b` and `f x` has a finite
+limit `c` almost surely as `x` tends to `b` from the right, then `u ↦ ∫ x in a..u, f x` has
+right derivative `c` at `b`. -/
 lemma integral_has_deriv_within_at_Ici_of_tendsto_ae (hfm : measurable f)
   (hfi : interval_integrable f volume a b)
   (hb : tendsto f (nhds_within b (Ici b) ⊓ volume.ae) (𝓝 c)) :
@@ -424,11 +440,16 @@ have pure b ≤ nhds_within b (Ici b) := pure_le_nhds_within left_mem_Ici,
 integral_volume_sub_integral_sub_linear_is_o_of_tendsto_ae hfm hb inf_le_left this hfi
   tendsto_id (flip tendsto_le_right tendsto_const_pure this)
 
+/-- Fundamental theorem of calculus: if `f : ℝ → E` is integrable on `a..b` and `f x` is continuous
+from the right at `b`, then `u ↦ ∫ x in a..u, f x` has right derivative `f b` at `b`. -/
 lemma integral_has_deriv_within_at_Ici (hfm : measurable f) (hfi : interval_integrable f volume a b)
   (hb : continuous_within_at f (Ici b) b) :
   has_deriv_within_at (λ u, ∫ x in a..u, f x) (f b) (Ici b) b :=
 integral_has_deriv_within_at_Ici_of_tendsto_ae hfm hfi (flip tendsto_le_left hb inf_le_left)
 
+/-- Fundamental theorem of calculus: if `f : ℝ → E` is integrable on `a..b` and `f x` has a finite
+limit `c` almost surely as `x` tends to `b` from the right, then the right derivative
+of `u ↦ ∫ x in a..u, f x` at `b` equals `c`. -/
 lemma deriv_within_Ici_integral_of_tendsto_ae (hfm : measurable f)
   (hfi : interval_integrable f volume a b)
   (hb : tendsto f (nhds_within b (Ici b) ⊓ volume.ae) (𝓝 c)) :
@@ -436,12 +457,17 @@ lemma deriv_within_Ici_integral_of_tendsto_ae (hfm : measurable f)
 (integral_has_deriv_within_at_Ici_of_tendsto_ae hfm hfi hb).deriv_within $
   unique_diff_on_Ici _ _ left_mem_Ici
 
+/-- Fundamental theorem of calculus: if `f : ℝ → E` is integrable on `a..b` and `f x` is continuous
+from the right at `b`, then the right derivative of `u ↦ ∫ x in a..u, f x` at `b` equals `c`. -/
 lemma deriv_within_Ici_integral (hfm : measurable f) (hfi : interval_integrable f volume a b)
   (hb : continuous_within_at f (Ici b) b) :
   deriv_within (λ u, ∫ x in a..u, f x) (Ici b) b = f b :=
 (integral_has_deriv_within_at_Ici hfm hfi hb).deriv_within $
   unique_diff_on_Ici _ _ left_mem_Ici
 
+/-- Fundamental theorem of calculus: if `f : ℝ → E` is integrable on `a..b` and `f x` has a finite
+limit `c` almost surely as `x` tends to `b` from the left, then `u ↦ ∫ x in a..u, f x` has left
+derivative `c` at `b`. -/
 lemma integral_has_deriv_within_at_Iic_of_tendsto_ae (hfm : measurable f)
   (hfi : interval_integrable f volume a b)
   (hb : tendsto f (nhds_within b (Iic b) ⊓ volume.ae) (𝓝 c)) :
@@ -450,11 +476,16 @@ have pure b ≤ nhds_within b (Iic b) := pure_le_nhds_within right_mem_Iic,
 integral_volume_sub_integral_sub_linear_is_o_of_tendsto_ae hfm hb inf_le_left this hfi
   tendsto_id (flip tendsto_le_right tendsto_const_pure this)
 
+/-- Fundamental theorem of calculus: if `f : ℝ → E` is integrable on `a..b` and `f x` is continuous
+from the left at `b`, then `u ↦ ∫ x in a..u, f x` has left derivative `f b` at `b`. -/
 lemma integral_has_deriv_within_at_Iic (hfm : measurable f) (hfi : interval_integrable f volume a b)
   (hb : continuous_within_at f (Iic b) b) :
   has_deriv_within_at (λ u, ∫ x in a..u, f x) (f b) (Iic b) b :=
 integral_has_deriv_within_at_Iic_of_tendsto_ae hfm hfi (flip tendsto_le_left hb inf_le_left)
 
+/-- Fundamental theorem of calculus: if `f : ℝ → E` is integrable on `a..b` and `f x` has a finite
+limit `c` almost surely as `x` tends to `b` from the left, then the left derivative
+of `u ↦ ∫ x in a..u, f x` at `b` equals `c`. -/
 lemma deriv_within_Iic_integral_of_tendsto_ae (hfm : measurable f)
   (hfi : interval_integrable f volume a b)
   (hb : tendsto f (nhds_within b (Iic b) ⊓ volume.ae) (𝓝 c)) :
@@ -462,6 +493,8 @@ lemma deriv_within_Iic_integral_of_tendsto_ae (hfm : measurable f)
 (integral_has_deriv_within_at_Iic_of_tendsto_ae hfm hfi hb).deriv_within $
   unique_diff_on_Iic _ _ right_mem_Iic
 
+/-- Fundamental theorem of calculus: if `f : ℝ → E` is integrable on `a..b` and `f x` is continuous
+from the left at `b`, then the left derivative of `u ↦ ∫ x in a..u, f x` at `b` equals `c`. -/
 lemma deriv_within_Iic_integral (hfm : measurable f) (hfi : interval_integrable f volume a b)
   (hb : continuous_within_at f (Iic b) b) :
   deriv_within (λ u, ∫ x in a..u, f x) (Iic b) b = f b :=
