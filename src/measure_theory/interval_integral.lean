@@ -186,12 +186,9 @@ lemma norm_integral_le_of_norm_le_const_ae {a b C : ℝ} {f : ℝ → E}
   ∥∫ x in a..b, f x∥ ≤ C * abs (b - a) :=
 begin
   rw [norm_integral_eq_norm_integral_Ioc],
-  have : volume (Ioc (min a b) (max a b)) = ennreal.of_real (abs (b - a)),
-  { rw [real.volume_Ioc, max_sub_min_eq_abs, ennreal.of_real] },
-  rw [← ennreal.to_real_of_real (abs_nonneg _), ← this],
-  refine norm_set_integral_le_of_norm_le_const_ae'' _ is_measurable_Ioc h,
-  simp only [this, ennreal.lt_top_iff_ne_top],
-  exact ennreal.of_real_ne_top
+  convert norm_set_integral_le_of_norm_le_const_ae'' _ is_measurable_Ioc h,
+  { rw [real.volume_Ioc, max_sub_min_eq_abs, ennreal.to_real_of_real (abs_nonneg _)] },
+  { simp only [real.volume_Ioc, ennreal.of_real_lt_top] },
 end
 
 lemma norm_integral_le_of_norm_le_const {a b C : ℝ} {f : ℝ → E}
@@ -260,10 +257,18 @@ lemma integral_interval_sub_left (hfm : measurable f) (hab : interval_integrable
   ∫ x in a..b, f x ∂μ - ∫ x in a..c, f x ∂μ = ∫ x in c..b, f x ∂μ :=
 sub_eq_of_eq_add' $ eq.symm $ integral_add_adjacent_intervals hfm hac (hac.symm.trans hab)
 
-lemma integral_of_Iic' (hfm : measurable f) (ha : integrable_on f (Iic a) μ)
-  (hb : integrable_on f (Iic b) μ) :
-  ∫ x in a..b, f x ∂μ = ∫ x in Iic b, f x ∂μ - ∫ x in Iic a, f x ∂μ :=
-_
+/-- If `μ` is a finite measure then `∫ x in a..b, c ∂μ = (μ (Iic b) - μ (Iic a)) • c`. -/
+lemma integral_const_of_cdf [finite_measure μ] (c : E) :
+  ∫ x in a..b, c ∂μ = ((μ (Iic b)).to_real - (μ (Iic a)).to_real) • c :=
+begin
+  wlog hab : a ≤ b using [a b] tactic.skip,
+  { rw [integral_of_le hab, set_integral_const], congr' 1,
+    apply eq_sub_of_add_eq',
+    rw [← ennreal.to_real_add, ← measure_union, Iic_union_Ioc_eq_Iic hab],
+    exacts [λ x ⟨h₁, h₂, h₃⟩, h₂.not_le h₁, is_measurable_Iic, is_measurable_Ioc,
+      measure_ne_top _ _, measure_ne_top _ _] },
+  { rw [integral_symm, this, sub_smul, sub_smul, neg_sub] }
+end
 
 end order_closed_topology
 
@@ -289,15 +294,14 @@ finite at `l`, then `∫ x in a..b, f x ∂μ = ((μ (I-/
 lemma integral_sub_linear_is_o_of_tendsto_ae₂ (hfm : measurable f)
   (hf : tendsto f (l ⊓ μ.ae) (𝓝 c)) (hl : μ.finite_at_filter l)
   {a b : β → α} (ha : tendsto a lb l) (hb : tendsto b lb l) :
-  is_o (λ t, ∫ x in a t..b t, f x ∂μ -
-      ((μ (Ioc (a t) (b t))).to_real - (μ (Ioc (b t) (a t))).to_real) • c)
+  is_o (λ t, ∫ x in a t..b t, f x ∂μ - ∫ x in a t..b t, c ∂μ)
     (λ t, (μ (Ioc (min (a t) (b t)) (max (a t) (b t)))).to_real) lb :=
 begin
   have A := (hf.integral_sub_linear_is_o_ae hfm hl).comp_tendsto (ha.Ioc hb),
   have B := (hf.integral_sub_linear_is_o_ae hfm hl).comp_tendsto (hb.Ioc ha),
   convert (A.trans_le _).sub (B.trans_le _),
   { ext t,
-    simp only [interval_integral, sub_smul, (∘)],
+    simp_rw [(∘), integral_const', interval_integral, sub_smul],
     abel },
   all_goals { intro t, cases le_total (a t) (b t) with hab hab; simp [hab] }
 end
@@ -308,7 +312,7 @@ lemma integral_sub_linear_is_o_of_tendsto_ae_of_le (hfm : measurable f)
   is_o (λ t, ∫ x in a t..b t, f x ∂μ - (μ (Ioc (a t) (b t))).to_real • c)
     (λ t, (μ $ Ioc (a t) (b t)).to_real) lb :=
 (integral_sub_linear_is_o_of_tendsto_ae₂ hfm hf hl ha hb).congr'
-  (hab.mono $ λ x hx, by simp [hx]) (hab.mono $ λ x hx, by simp [hx])
+  (hab.mono $ λ x hx, by simp [integral_const', hx]) (hab.mono $ λ x hx, by simp [hx])
 
 lemma integral_sub_linear_is_o_of_tendsto_ae_of_ge (hfm : measurable f)
   (hf : tendsto f (l ⊓ μ.ae) (𝓝 c)) (hl : μ.finite_at_filter l)
@@ -322,7 +326,7 @@ variables [topological_space α] [order_topology α] [borel_space α]
 
 lemma integral_sub_linear_is_o_of_tendsto_ae [locally_finite_measure μ] {f : α → E} {a : α}
   {c : E} (hfm : measurable f) (hf : tendsto f ((𝓝 a) ⊓ μ.ae) (𝓝 c)) :
-  is_o (λ b, ∫ x in a..b, f x ∂μ - ((μ (Ioc a b)).to_real - (μ (Ioc b a)).to_real) • c)
+  is_o (λ b, ∫ x in a..b, f x ∂μ - ∫ x in a..b, c ∂μ)
     (λ b, (μ (Ioc (min a b) (max a b))).to_real) (𝓝 a) :=
 integral_sub_linear_is_o_of_tendsto_ae₂ hfm hf (μ.finite_at_nhds a) tendsto_const_nhds tendsto_id
 
@@ -355,7 +359,7 @@ begin
   refine ((integral_sub_linear_is_o_of_tendsto_ae₂ hfm hf
     ((volume.finite_at_nhds _).filter_mono hz) ha hb).congr _ _).of_norm_right,
   { intro t,
-    simp only [real.volume_Ioc, ennreal.to_real_of_real', ← neg_sub (b _), max_zero_sub_eq_self] },
+    simp only [integral_const] },
   { intro t,
     simp [max_sub_min_eq_abs, abs_nonneg, real.norm_eq_abs] }
 end
