@@ -206,11 +206,11 @@ lemma is_measurable_Iic : is_measurable (Iic a) := is_closed_Iic.is_measurable
 lemma is_measurable_Icc : is_measurable (Icc a b) := is_closed_Icc.is_measurable
 
 instance nhds_within_Ici_is_measurably_generated :
-  (nhds_within a (Ici b)).is_measurably_generated :=
+  (𝓝[Ici b] a).is_measurably_generated :=
 is_measurable_Ici.nhds_within_is_measurably_generated _
 
 instance nhds_within_Iic_is_measurably_generated :
-  (nhds_within a (Iic b)).is_measurably_generated :=
+  (𝓝[Iic b] a).is_measurably_generated :=
 is_measurable_Iic.nhds_within_is_measurably_generated _
 
 instance at_top_is_measurably_generated : (filter.at_top : filter α).is_measurably_generated :=
