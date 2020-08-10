@@ -52,30 +52,30 @@ theorem sort_sorted_lt (s : finset α) :
   list.sorted (<) (sort (≤) s) :=
 (sort_sorted _ _).imp₂ (@lt_of_le_of_ne _ _) (sort_nodup _ _)
 
-lemma sorted_zero_eq_min' (s : finset α) (h : 0 < (s.sort (≤)).length) (H : s.nonempty) :
-  (s.sort (≤)).nth_le 0 h = s.min' H :=
+lemma sorted_zero_eq_inf' (s : finset α) (h : 0 < (s.sort (≤)).length) (H : s.nonempty) :
+  (s.sort (≤)).nth_le 0 h = s.1.inf' H :=
 begin
   let l := s.sort (≤),
   apply le_antisymm,
-  { have : s.min' H ∈ l := (finset.mem_sort (≤)).mpr (s.min'_mem H),
-    obtain ⟨i, i_lt, hi⟩ : ∃ i (hi : i < l.length), l.nth_le i hi = s.min' H :=
+  { have : s.1.inf' H ∈ l := (finset.mem_sort (≤)).mpr (s.1.inf'_mem H),
+    obtain ⟨i, i_lt, hi⟩ : ∃ i (hi : i < l.length), l.nth_le i hi = s.1.inf' H :=
       list.mem_iff_nth_le.1 this,
     rw ← hi,
     exact list.nth_le_of_sorted_of_le (s.sort_sorted (≤)) (nat.zero_le i) },
   { have : l.nth_le 0 h ∈ s := (finset.mem_sort (≤)).1 (list.nth_le_mem l 0 h),
-    exact s.min'_le H _ this }
+    exact s.1.inf'_le H _ this }
 end
 
-lemma sorted_last_eq_max' (s : finset α) (h : (s.sort (≤)).length - 1 < (s.sort (≤)).length)
-  (H : s.nonempty) : (s.sort (≤)).nth_le ((s.sort (≤)).length - 1) h = s.max' H :=
+lemma sorted_last_eq_sup' (s : finset α) (h : (s.sort (≤)).length - 1 < (s.sort (≤)).length)
+  (H : s.nonempty) : (s.sort (≤)).nth_le ((s.sort (≤)).length - 1) h = s.1.sup' H :=
 begin
   let l := s.sort (≤),
   apply le_antisymm,
   { have : l.nth_le ((s.sort (≤)).length - 1) h ∈ s :=
       (finset.mem_sort (≤)).1 (list.nth_le_mem l _ h),
-    exact s.le_max' H _ this },
-  { have : s.max' H ∈ l := (finset.mem_sort (≤)).mpr (s.max'_mem H),
-    obtain ⟨i, i_lt, hi⟩ : ∃ i (hi : i < l.length), l.nth_le i hi = s.max' H :=
+    exact s.1.le_sup' H _ this },
+  { have : s.1.sup' H ∈ l := (finset.mem_sort (≤)).mpr (s.1.sup'_mem H),
+    obtain ⟨i, i_lt, hi⟩ : ∃ i (hi : i < l.length), l.nth_le i hi = s.1.sup' H :=
       list.mem_iff_nth_le.1 this,
     rw ← hi,
     have : i ≤ l.length - 1 := nat.le_pred_of_lt i_lt,
@@ -121,27 +121,27 @@ set.injective_iff_inj_on_univ.mpr (s.mono_of_fin_bij_on h).inj_on
 
 /-- The bijection `mono_of_fin s h` sends `0` to the minimum of `s`. -/
 lemma mono_of_fin_zero {s : finset α} {k : ℕ} (h : s.card = k) (hs : s.nonempty) (hz : 0 < k) :
-  mono_of_fin s h ⟨0, hz⟩ = s.min' hs :=
+  mono_of_fin s h ⟨0, hz⟩ = s.1.inf' hs :=
 begin
   apply le_antisymm,
-  { have : min' s hs ∈ s := min'_mem s hs,
+  { have : inf' _ hs ∈ s := inf'_mem _ hs,
     rcases (mono_of_fin_bij_on s h).surj_on this with ⟨a, _, ha⟩,
     rw ← ha,
     apply (mono_of_fin_strict_mono s h).monotone,
     exact zero_le a.val },
   { have : mono_of_fin s h ⟨0, hz⟩ ∈ s := (mono_of_fin_bij_on s h).maps_to (set.mem_univ _),
-    exact min'_le s hs _ this }
+    exact inf'_le _ hs _ this }
 end
 
 /-- The bijection `mono_of_fin s h` sends `k-1` to the maximum of `s`. -/
 lemma mono_of_fin_last {s : finset α} {k : ℕ} (h : s.card = k) (hs : s.nonempty) (hz : 0 < k) :
-  mono_of_fin s h ⟨k-1, buffer.lt_aux_2 hz⟩ = s.max' hs :=
+  mono_of_fin s h ⟨k-1, buffer.lt_aux_2 hz⟩ = s.1.sup' hs :=
 begin
   have h'' : k - 1 < k := buffer.lt_aux_2 hz,
   apply le_antisymm,
   { have : mono_of_fin s h ⟨k-1, h''⟩ ∈ s := (mono_of_fin_bij_on s h).maps_to (set.mem_univ _),
-    exact le_max' s hs _ this },
-  { have : max' s hs ∈ s := max'_mem s hs,
+    exact le_sup' _ hs _ this },
+  { have : sup' _ hs ∈ s := sup'_mem _ hs,
     rcases (mono_of_fin_bij_on s h).surj_on this with ⟨a, _, ha⟩,
     rw ← ha,
     apply (mono_of_fin_strict_mono s h).monotone,
@@ -151,8 +151,10 @@ end
 /-- `mono_of_fin {a} h` sends any argument to `a`. -/
 @[simp] lemma mono_of_fin_singleton (a : α) (i : fin 1) {h} :
   mono_of_fin {a} h i = a :=
-by rw [subsingleton.elim i ⟨0, zero_lt_one⟩,
-       mono_of_fin_zero h (singleton_nonempty a) zero_lt_one, min'_singleton]
+begin
+  rw [subsingleton.elim i ⟨0, zero_lt_one⟩, mono_of_fin_zero h (singleton_nonempty a) zero_lt_one],
+  simp,
+end
 
 /-- The range of `mono_of_fin`. -/
 @[simp] lemma range_mono_of_fin {s : finset α} {k : ℕ} (h : s.card = k) :

@@ -62,8 +62,7 @@ by unfold monic; apply_instance
 @[simp] lemma nat_degree_zero : nat_degree (0 : polynomial R) = 0 := rfl
 
 lemma degree_eq_bot : degree p = ⊥ ↔ p = 0 :=
-⟨λ h, by rw [degree, ← max_eq_sup_with_bot] at h;
-  exact support_eq_empty.1 (max_eq_none.1 h),
+⟨λ h, by rwa [←support_eq_empty, ←finset.val_eq_zero, ←multiset.sup_eq_bot],
 λ h, h.symm ▸ rfl⟩
 
 lemma degree_eq_nat_degree (hp : p ≠ 0) : degree p = (nat_degree p : with_bot ℕ) :=
@@ -235,7 +234,7 @@ sum_over_range' p h (p.nat_degree + 1) (lt_add_one _)
 
 lemma coeff_ne_zero_of_eq_degree (hn : degree p = n) :
   coeff p n ≠ 0 :=
-λ h, mem_support_iff.mp (mem_of_max hn) h
+λ h, mem_support_iff.mp (multiset.mem_of_sup hn) h
 
 lemma eq_X_add_C_of_degree_le_one (h : degree p ≤ 1) :
   p = C (p.coeff 1) * X + C (p.coeff 0) :=
@@ -365,7 +364,7 @@ calc degree (p + q) = ((p + q).support).sup some : rfl
 
 @[simp] lemma leading_coeff_eq_zero : leading_coeff p = 0 ↔ p = 0 :=
 ⟨λ h, by_contradiction $ λ hp, mt mem_support_iff.1
-  (not_not.2 h) (mem_of_max (degree_eq_nat_degree hp)),
+  (not_not.2 h) (multiset.mem_of_sup (degree_eq_nat_degree hp)),
 λ h, h.symm ▸ leading_coeff_zero⟩
 
 lemma leading_coeff_eq_zero_iff_deg_eq_bot : leading_coeff p = 0 ↔ degree p = ⊥ :=
@@ -406,7 +405,7 @@ by convert sup_mono (erase_subset _ _)
 
 lemma degree_erase_lt (hp : p ≠ 0) : degree (p.erase (nat_degree p)) < degree p :=
 lt_of_le_of_ne (degree_erase_le _ _) $
-  (degree_eq_nat_degree hp).symm ▸ (by convert λ h, not_mem_erase _ _ (mem_of_max h))
+  (degree_eq_nat_degree hp).symm ▸ (by convert λ h, not_mem_erase _ _ (multiset.mem_of_sup h))
 
 lemma degree_sum_le (s : finset ι) (f : ι → polynomial R) :
   degree (∑ i in s, f i) ≤ s.sup (λ b, degree (f b)) :=

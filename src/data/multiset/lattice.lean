@@ -109,4 +109,106 @@ by rw [← inf_erase_dup, erase_dup_ext.2, inf_erase_dup, inf_cons]; simp
 
 end inf
 
+section sup'
+variable [semilattice_sup α]
+
+--based on finset.max_of_mem
+theorem sup_of_mem {s : multiset α} {a : α} (h : a ∈ s) :
+  ∃ b : α, @sup (with_bot α) _ (map coe s) = ↑b :=
+(@le_sup (with_bot α) _ _ _ (mem_map_of_mem _ h) _ rfl).imp $ λ b, Exists.fst
+
+--based on finset.max_of_nonempty
+theorem sup_of_exists_mem {s : multiset α} (h : ∃ a, a ∈ s) :
+  ∃ b : α, @sup (with_bot α) _ (map coe s) = ↑b :=
+let ⟨a, ha⟩ := h in sup_of_mem ha
+
+--based on finset.max_eq_none
+theorem sup_eq_bot {s : multiset α} : @sup (with_bot α) _ (map coe s) = ⊥ ↔ s = 0 :=
+⟨λ h, s.eq_zero_or_exists_mem.elim id
+  (λ H, let ⟨a, ha⟩ := sup_of_exists_mem H in by rw h at ha; cases ha),
+  λ h, h.symm ▸ sup_zero⟩
+
+--based on finset.le_max_of_mem
+theorem le_sup_of_mem {s : multiset α} {a b : α} (h₁ : a ∈ s)
+  (h₂ : @sup (with_bot α) _ (map coe s) = ↑b) : a ≤ b :=
+by rcases @le_sup (with_bot α) _ _ _ (mem_map_of_mem _ h₁) _ rfl with ⟨b', hb, ab⟩;
+   cases h₂.symm.trans hb; assumption
+
+--based on finset.max'
+def sup' (s : multiset α) (H : ∃ k, k ∈ s) : α :=
+option.get $ let ⟨k, hk⟩ := H in option.is_some_iff_exists.2 (sup_of_mem hk)
+
+variables (s : multiset α) (H : ∃ a, a ∈ s)
+
+--based on finset.le_max'
+theorem le_sup' (x) (H2 : x ∈ s) : x ≤ s.sup' H := le_sup_of_mem H2 $ option.get_mem _
+
+--based on finset.max'_singleton
+@[simp] lemma sup'_singleton (a : α) {h} : (a::0).sup' h = a :=
+by simp [sup']
+
+end sup'
+
+section inf'
+variable [semilattice_inf α]
+
+theorem inf_of_mem {s : multiset α} {a : α} (h : a ∈ s) :
+  ∃ b : α, @inf (with_top α) _ (map coe s) = ↑b :=
+@sup_of_mem (order_dual α) _ _ _ h
+
+theorem inf_of_exists_mem {s : multiset α} (h : ∃ a, a ∈ s) :
+  ∃ b : α, @inf (with_top α) _ (map coe s) = ↑b :=
+@sup_of_exists_mem (order_dual α) _ _ h
+
+theorem inf_eq_top {s : multiset α} : @inf (with_top α) _ (map coe s) = ⊤ ↔ s = 0 :=
+@sup_eq_bot (order_dual α) _ _
+
+theorem inf_le_of_mem {s : multiset α} {a b : α} (h₁ : b ∈ s)
+  (h₂ : @inf (with_top α) _ (map coe s) = ↑a) : a ≤ b :=
+@le_sup_of_mem (order_dual α) _ _ _ _ h₁ h₂
+
+def inf' (s : multiset α) (H : ∃ k, k ∈ s) : α :=
+@sup' (order_dual α) _ s H
+
+variables (s : multiset α) (H : ∃ a, a ∈ s)
+
+theorem inf'_le (x) (H2 : x ∈ s) : s.inf' H ≤ x :=
+@le_sup' (order_dual α) _ s H x H2
+
+@[simp] lemma inf'_singleton (a : α) {h} : (a::0).inf' h = a :=
+@sup'_singleton (order_dual α) _ a _
+
+end inf'
+
+section max_min
+variables [decidable_linear_order α]
+
+--based on finset.mem_of_max
+theorem mem_of_sup {s : multiset α} : ∀ {a : α}, @sup (with_bot α) _ (map coe s) = ↑a → a ∈ s :=
+multiset.induction_on s (λ _ H, by cases H) $
+  λ b s (ih : ∀ {a}, (map coe s).sup = ↑a → a ∈ s) a (h : (map coe (b::s)).sup = ↑a),
+  begin
+    by_cases p : b = a,
+    { induction p, exact mem_cons_self b s },
+    { cases option.lift_or_get_choice max_choice ↑b (map coe s).sup with q q;
+      change @has_sup.sup (with_bot α) _ ↑b (map coe s).sup = _ at q;
+      rw [map_cons, sup_cons, q] at h,
+      { cases h, cases p rfl },
+      { exact mem_cons_of_mem (ih h) } }
+  end
+
+theorem mem_of_inf {s : multiset α} : ∀ {a : α}, @inf (with_top α) _ (map coe s) = ↑a → a ∈ s :=
+@mem_of_sup (order_dual α) _ _
+
+variables (s : multiset α) (H : ∃ a : α, a ∈ s)
+
+--based on finset.max'_mem
+theorem sup'_mem : s.sup' H ∈ s :=
+mem_of_sup $ by rw [sup', ←with_bot.some_eq_coe, option.some_get]
+
+theorem inf'_mem : s.inf' H ∈ s :=
+@sup'_mem (order_dual α) _ s H
+
+end max_min
+
 end multiset

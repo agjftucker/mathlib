@@ -275,7 +275,7 @@ begin
   let A := finset.image u (finset.range $ N+1), -- A = {u 0, ..., u N}
   have Ane : A.nonempty,
     from ⟨u 0, finset.mem_image_of_mem _ (finset.mem_range.mpr $ nat.zero_lt_succ _)⟩,
-  let M := finset.max' A Ane,
+  let M := multiset.sup' A.1 Ane,
   have ex : ∃ n ≥ N, M < u n,
     from exists_lt_of_tendsto_at_top hu _ _,
   obtain ⟨n, hnN, hnM, hn_min⟩ : ∃ n, N ≤ n ∧ M < u n ∧ ∀ k, N ≤ k → k < n → u k ≤ M,
@@ -291,7 +291,7 @@ begin
   { have : u k ∈ A,
       from finset.mem_image_of_mem _ (finset.mem_range.mpr $ nat.lt_succ_of_le H),
     have : u k ≤ M,
-      from finset.le_max' A Ane (u k) this,
+      from multiset.le_sup' _ Ane (u k) this,
     exact lt_of_le_of_lt this hnM },
   { push_neg at H,
     calc u k ≤ M   : hn_min k (le_of_lt H) hk

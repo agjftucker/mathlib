@@ -183,6 +183,10 @@ quot.induction_on s $ assume l hl,
   | (a :: l) := assume _, ⟨a, by simp⟩
   end
 
+--based on finset.eq_empty_or_nonempty
+theorem eq_zero_or_exists_mem (s : multiset α) : s = 0 ∨ ∃ a : α, a ∈ s :=
+classical.by_cases or.inl (λ h, or.inr (exists_mem_of_ne_zero h))
+
 @[simp] lemma zero_ne_cons {a : α} {m : multiset α} : 0 ≠ a :: m :=
 assume h, have a ∈ (0:multiset α), from h.symm ▸ mem_cons_self _ _, not_mem_zero _ this
 
