@@ -138,13 +138,14 @@ by rcases @le_sup (with_bot α) _ _ _ (mem_map_of_mem _ h₁) _ rfl with ⟨b', 
 def sup' (s : multiset α) (H : ∃ k, k ∈ s) : α :=
 option.get $ let ⟨k, hk⟩ := H in option.is_some_iff_exists.2 (sup_of_mem hk)
 
-variables (s : multiset α) (H : ∃ a, a ∈ s)
+variable (s : multiset α)
 
 --based on finset.le_max'
-theorem le_sup' (x) (H2 : x ∈ s) : x ≤ s.sup' H := le_sup_of_mem H2 $ option.get_mem _
+theorem le_sup' (x) (H2 : x ∈ s) : x ≤ s.sup' ⟨x, H2⟩ :=
+le_sup_of_mem H2 $ option.get_mem _
 
 --based on finset.max'_singleton
-@[simp] lemma sup'_singleton (a : α) {h} : (a::0).sup' h = a :=
+@[simp] lemma sup'_singleton (a : α) : (a::0).sup' ⟨a, or.inl rfl⟩ = a :=
 by simp [sup']
 
 end sup'
@@ -170,13 +171,13 @@ theorem inf_le_of_mem {s : multiset α} {a b : α} (h₁ : b ∈ s)
 def inf' (s : multiset α) (H : ∃ k, k ∈ s) : α :=
 @sup' (order_dual α) _ s H
 
-variables (s : multiset α) (H : ∃ a, a ∈ s)
+variable (s : multiset α)
 
-theorem inf'_le (x) (H2 : x ∈ s) : s.inf' H ≤ x :=
-@le_sup' (order_dual α) _ s H x H2
+theorem inf'_le (x) (H2 : x ∈ s) : s.inf' ⟨x, H2⟩ ≤ x :=
+@le_sup' (order_dual α) _ s x H2
 
-@[simp] lemma inf'_singleton (a : α) {h} : (a::0).inf' h = a :=
-@sup'_singleton (order_dual α) _ a _
+@[simp] lemma inf'_singleton (a : α) : (a::0).inf' ⟨a, or.inl rfl⟩ = a :=
+@sup'_singleton (order_dual α) _ a
 
 end inf'
 

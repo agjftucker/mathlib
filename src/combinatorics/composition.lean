@@ -712,14 +712,14 @@ finset.mono_of_fin c.boundaries rfl
 
 @[simp] lemma boundary_zero : c.boundary ⟨0, c.card_boundaries_pos⟩ = 0 :=
 begin
-  rw [boundary, finset.mono_of_fin_zero rfl c.boundaries_nonempty c.card_boundaries_pos],
-  exact le_antisymm (multiset.inf'_le _ _ _ c.zero_mem) (fin.zero_le _),
+  rw [boundary, finset.mono_of_fin_zero_eq_inf' rfl c.card_boundaries_pos],
+  exact le_antisymm (multiset.inf'_le _ _ c.zero_mem) (fin.zero_le _),
 end
 
 @[simp] lemma boundary_length : c.boundary ⟨c.length, c.length_lt_card_boundaries⟩ = fin.last n :=
 begin
-  convert finset.mono_of_fin_last rfl c.boundaries_nonempty c.card_boundaries_pos,
-  exact le_antisymm (multiset.le_sup' _ _ _ c.last_mem) (fin.le_last _)
+  convert finset.mono_of_fin_last_eq_sup' rfl c.card_boundaries_pos,
+  exact le_antisymm (multiset.le_sup' _ _ c.last_mem) (fin.le_last _)
 end
 
 /-- Size of the `i`-th block in a `composition_as_set`, seen as a function on `fin c.length`. -/
